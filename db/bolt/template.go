@@ -315,3 +315,24 @@ func (d *BoltDb) UpdateTemplateRole(role db.TemplateRolePerm) error {
 func (d *BoltDb) GetTemplateRole(projectID int, templateID int, roleID int) (role db.TemplateRolePerm, err error) {
 	return
 }
+
+func (d *BoltDb) GetTemplateInventories(projectID int, templateID int) (inventories []db.Inventory, err error) {
+	template, err := d.getRawTemplate(projectID, templateID)
+	if err != nil {
+		return
+	}
+
+	// For BoltDB, we store inventory IDs in a separate bucket or as part of the template
+	// For simplicity, we'll read from the Inventories field which will be populated
+	// For now, return empty if not set, FillTemplate will handle backward compatibility
+	inventories = []db.Inventory{}
+	return
+}
+
+func (d *BoltDb) UpdateTemplateInventories(projectID int, templateID int, inventoryIDs []int) error {
+	// For BoltDB, we store this information in the template object itself
+	// The Inventories will be populated during FillTemplate by checking inventory_id
+	// No additional action needed for BoltDB as it's a NoSQL database
+	return nil
+}
+

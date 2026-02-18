@@ -68,6 +68,18 @@ func (d *SqlDb) CreateTemplate(template db.Template) (newTemplate db.Template, e
 		return
 	}
 
+	// Handle multiple inventories
+	if len(template.Inventories) > 0 {
+		var inventoryIDs []int
+		for _, inv := range template.Inventories {
+			inventoryIDs = append(inventoryIDs, inv.ID)
+		}
+		err = d.UpdateTemplateInventories(template.ProjectID, insertID, inventoryIDs)
+		if err != nil {
+			return
+		}
+	}
+
 	err = db.FillTemplate(d, &newTemplate)
 
 	if err != nil {
@@ -140,6 +152,18 @@ func (d *SqlDb) UpdateTemplate(template db.Template) error {
 	}
 
 	err = d.UpdateTemplateVaults(template.ProjectID, template.ID, template.Vaults)
+	if err != nil {
+		return err
+	}
+
+	// Handle multiple inventories
+	if len(template.Inventories) > 0 {
+		var inventoryIDs []int
+		for _, inv := range template.Inventories {
+			inventoryIDs = append(inventoryIDs, inv.ID)
+		}
+		err = d.UpdateTemplateInventories(template.ProjectID, template.ID, inventoryIDs)
+	}
 
 	return err
 }
@@ -508,3 +532,50 @@ func (d *SqlDb) UpdateTemplateRole(role db.TemplateRolePerm) error {
 
 	return err
 }
+
+func (d *SqlDb) GetTemplateInventories(projectID int, templateID int) (inventories []db.Inventory, err error) {
+	query, args, err := squirrel.Select("pi.*").
+		From("project__inventory pi").
+		Join("project__template_inventory pti ON pti.inventory_id = pi.id").
+		Where("pti.template_id = ?", templateID).
+		Where("pi.project_id = ?", projectID).
+		OrderBy("pti.id ASC").
+		ToSql()
+
+	if err != nil {
+		return
+	}
+
+	_, err = d.selectAll(&inventories, query, args...)
+	return
+}
+
+func (d *SqlDb) UpdateTemplateInventories(projectID int, templateID int, inventoryIDs []int) error {
+	// Start a transaction
+	tx, err := d.sql.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Delete existing inventory associations
+	_, err = tx.Exec("DELETE FROM project__template_inventory WHERE template_id = ?", templateID)
+	if err != nil {
+		return err
+	}
+
+	// Insert new inventory associations
+	for _, inventoryID := range inventoryIDs {
+		_, err = tx.Exec(
+			"INSERT INTO project__template_inventory (template_id, inventory_id) VALUES (?, ?)",
+			templateID,
+			inventoryID,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+

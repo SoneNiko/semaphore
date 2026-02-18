@@ -117,6 +117,10 @@ type Template struct {
 	RepositoryID  int  `db:"repository_id" json:"repository_id" backup:"-"`
 	EnvironmentID *int `db:"environment_id" json:"environment_id,omitempty" backup:"-"`
 
+	// Inventories is a list of inventory IDs attached to this template
+	// This field is not stored in database, it is filled by FillTemplate
+	Inventories []Inventory `db:"-" json:"inventories,omitempty" backup:"-"`
+
 	// Name as described in https://github.com/semaphoreui/semaphore/issues/188
 	Name string `db:"name" json:"name"`
 	// playbook name in the form of "some_play.yml"
@@ -197,7 +201,8 @@ func (tpl *Template) Validate() error {
 	}
 	switch tpl.App {
 	case AppAnsible:
-		if tpl.InventoryID == nil {
+		// For backward compatibility, allow either InventoryID or Inventories
+		if tpl.InventoryID == nil && len(tpl.Inventories) == 0 {
 			return &ValidationError{"template inventory can not be empty"}
 		}
 	}
@@ -226,6 +231,25 @@ func FillTemplate(d Store, template *Template) (err error) {
 		return
 	}
 	template.Vaults = vaults
+
+	// Load template inventories
+	var inventories []Inventory
+	inventories, err = d.GetTemplateInventories(template.ProjectID, template.ID)
+	if err != nil {
+		return
+	}
+	template.Inventories = inventories
+
+	// If no inventories in the junction table but inventory_id is set, use that for backward compatibility
+	if len(template.Inventories) == 0 && template.InventoryID != nil {
+		var inventory Inventory
+		inventory, err = d.GetInventory(template.ProjectID, *template.InventoryID)
+		if err == nil {
+			template.Inventories = []Inventory{inventory}
+		} else {
+			err = nil // Ignore error if inventory not found
+		}
+	}
 
 	var tasks []TaskWithTpl
 	tasks, err = d.GetTemplateTasks(template.ProjectID, template.ID, RetrieveQueryParams{Count: 1})

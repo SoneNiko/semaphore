@@ -291,6 +291,9 @@ type TemplateManager interface {
 	DeleteTemplateRole(projectID int, templateID int, permID int) error
 	UpdateTemplateRole(role TemplateRolePerm) error
 	GetTemplateRole(projectID int, templateID int, permID int) (TemplateRolePerm, error)
+
+	GetTemplateInventories(projectID int, templateID int) ([]Inventory, error)
+	UpdateTemplateInventories(projectID int, templateID int, inventoryIDs []int) error
 }
 
 // InventoryManager handles inventory-related operations
