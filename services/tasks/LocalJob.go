@@ -84,8 +84,27 @@ func (t *LocalJob) getTaskDetails(username string, incomingVersion *string) (tas
 	taskDetails["url"] = t.Task.GetUrl()
 	taskDetails["commit_hash"] = t.Task.CommitHash
 	taskDetails["commit_message"] = t.Task.CommitMessage
-	taskDetails["inventory_name"] = t.Inventory.Name
-	taskDetails["inventory_id"] = t.Inventory.ID
+	
+	// Support both single and multiple inventories
+	if len(t.Inventories) > 0 {
+		// Multiple inventories - use first as primary
+		taskDetails["inventory_name"] = t.Inventories[0].Name
+		taskDetails["inventory_id"] = t.Inventories[0].ID
+		
+		// Add all inventory names as array
+		var inventoryNames []string
+		var inventoryIDs []int
+		for _, inv := range t.Inventories {
+			inventoryNames = append(inventoryNames, inv.Name)
+			inventoryIDs = append(inventoryIDs, inv.ID)
+		}
+		taskDetails["inventory_names"] = inventoryNames
+		taskDetails["inventory_ids"] = inventoryIDs
+	} else {
+		taskDetails["inventory_name"] = t.Inventory.Name
+		taskDetails["inventory_id"] = t.Inventory.ID
+	}
+	
 	taskDetails["repository_name"] = t.Repository.Name
 	taskDetails["repository_id"] = t.Repository.ID
 
@@ -351,23 +370,44 @@ func (t *LocalJob) getPlaybookArgs(username string, incomingVersion *string) (ar
 		playbookName = t.Template.Playbook
 	}
 
-	var inventoryFilename string
-	switch t.Inventory.Type {
-	case db.InventoryFile:
-		if t.Inventory.RepositoryID == nil {
-			inventoryFilename = t.Inventory.GetFilename()
-		} else {
-			inventoryFilename = path.Join(t.tmpInventoryFullPath(), t.Inventory.GetFilename())
+	// Handle multiple inventories - generate -i argument for each
+	if len(t.Inventories) > 0 {
+		for idx, inventory := range t.Inventories {
+			var inventoryFilename string
+			switch inventory.Type {
+			case db.InventoryFile:
+				if inventory.RepositoryID == nil {
+					inventoryFilename = inventory.GetFilename()
+				} else {
+					inventoryFilename = path.Join(t.tmpInventoryFullPath(idx), inventory.GetFilename())
+				}
+			case db.InventoryStatic, db.InventoryStaticYaml:
+				inventoryFilename = t.tmpInventoryFullPath(idx)
+			default:
+				err = fmt.Errorf("invalid inventory type for inventory %d", inventory.ID)
+				return
+			}
+			args = append(args, "-i", inventoryFilename)
 		}
-	case db.InventoryStatic, db.InventoryStaticYaml:
-		inventoryFilename = t.tmpInventoryFullPath()
-	default:
-		err = fmt.Errorf("invalid inventory type")
-		return
-	}
-
-	args = []string{
-		"-i", inventoryFilename,
+	} else if t.Inventory.ID != 0 {
+		// Fallback to single inventory for backward compatibility
+		var inventoryFilename string
+		switch t.Inventory.Type {
+		case db.InventoryFile:
+			if t.Inventory.RepositoryID == nil {
+				inventoryFilename = t.Inventory.GetFilename()
+			} else {
+				inventoryFilename = path.Join(t.tmpInventoryFullPath(0), t.Inventory.GetFilename())
+			}
+		case db.InventoryStatic, db.InventoryStaticYaml:
+			inventoryFilename = t.tmpInventoryFullPath(0)
+		default:
+			err = fmt.Errorf("invalid inventory type")
+			return
+		}
+		args = []string{
+			"-i", inventoryFilename,
+		}
 	}
 
 	if t.Inventory.SSHKeyID != nil {

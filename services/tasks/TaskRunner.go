@@ -30,6 +30,7 @@ type TaskRunner struct {
 	Task        db.Task
 	Template    db.Template
 	Inventory   db.Inventory
+	Inventories []db.Inventory // Support multiple inventories
 	Repository  db.Repository
 	Environment db.Environment
 
@@ -373,28 +374,32 @@ func (t *TaskRunner) populateDetails() error {
 		t.users = append(t.users, userID)
 	}
 
-	// get inventory
+	// get inventories - support both single and multiple inventories
 	canOverrideInventory, err := t.Template.CanOverrideInventory()
 	if err != nil {
 		return err
 	}
 
-	if canOverrideInventory && t.Task.InventoryID != nil {
-		t.Inventory, err = t.pool.inventoryService.GetInventory(t.Template.ProjectID, *t.Task.InventoryID)
+	// Load inventories from template
+	if len(t.Template.Inventories) > 0 {
+		t.Inventories = t.Template.Inventories
+		// Set the first inventory as the primary one for backward compatibility
+		t.Inventory = t.Template.Inventories[0]
+	} else if t.Template.InventoryID != nil {
+		// Fallback to single inventory for backward compatibility
+		t.Inventory, err = t.pool.inventoryService.GetInventory(t.Template.ProjectID, *t.Template.InventoryID)
 		if err != nil {
-			if t.Template.InventoryID != nil {
-				t.Inventory, err = t.pool.inventoryService.GetInventory(t.Template.ProjectID, *t.Template.InventoryID)
-				if err != nil {
-					return t.prepareError(err, "Template Inventory not found!")
-				}
-			}
+			return t.prepareError(err, "Template Inventory not found!")
 		}
-	} else {
-		if t.Template.InventoryID != nil {
-			t.Inventory, err = t.pool.inventoryService.GetInventory(t.Template.ProjectID, *t.Template.InventoryID)
-			if err != nil {
-				return t.prepareError(err, "Template Inventory not found!")
-			}
+		t.Inventories = []db.Inventory{t.Inventory}
+	}
+
+	// Handle task-level inventory override if allowed
+	if canOverrideInventory && t.Task.InventoryID != nil {
+		overrideInv, err := t.pool.inventoryService.GetInventory(t.Template.ProjectID, *t.Task.InventoryID)
+		if err == nil {
+			t.Inventory = overrideInv
+			t.Inventories = []db.Inventory{overrideInv}
 		}
 	}
 
