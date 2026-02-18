@@ -104,6 +104,9 @@ func (t *LocalJob) getTaskDetails(username string, incomingVersion *string) (tas
 	} else {
 		taskDetails["inventory_name"] = t.Inventory.Name
 		taskDetails["inventory_id"] = t.Inventory.ID
+		// Include empty arrays for backward compatibility with new structure
+		taskDetails["inventory_names"] = []string{}
+		taskDetails["inventory_ids"] = []int{}
 	}
 	
 	taskDetails["repository_name"] = t.Repository.Name
@@ -390,7 +393,7 @@ func (t *LocalJob) getPlaybookArgs(username string, incomingVersion *string) (ar
 			}
 			args = append(args, "-i", inventoryFilename)
 		}
-	} else if t.Inventory.ID != 0 {
+	} else if t.Inventory.Type != "" {
 		// Fallback to single inventory for backward compatibility
 		var inventoryFilename string
 		switch t.Inventory.Type {

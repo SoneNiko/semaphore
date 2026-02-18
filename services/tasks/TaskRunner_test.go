@@ -545,6 +545,7 @@ func TestTaskGetPlaybookArgs(t *testing.T) {
 		Task:        tsk.Task,
 		Template:    tsk.Template,
 		Inventory:   tsk.Inventory,
+		Inventories: []db.Inventory{}, // Initialize empty for single inventory mode
 		Repository:  tsk.Repository,
 		Environment: tsk.Environment,
 		Logger:      &tsk,
@@ -567,8 +568,10 @@ func TestTaskGetPlaybookArgs(t *testing.T) {
 	}
 
 	res := strings.Join(args, " ")
-	if res != "-i /tmp/project_0/inventory_0 --extra-vars {\"semaphore_vars\":{\"task_details\":{\"commit_hash\":null,\"commit_message\":\"\",\"id\":0,\"inventory_id\":0,\"inventory_name\":\"\",\"repository_id\":0,\"repository_name\":\"\",\"url\":null,\"username\":\"\"}}} test.yml" {
-		t.Fatal("incorrect result")
+	// The expected output should now include inventory_ids and inventory_names arrays in task_details
+	expected := "-i /tmp/project_0/inventory_0 --extra-vars {\"semaphore_vars\":{\"task_details\":{\"commit_hash\":null,\"commit_message\":\"\",\"id\":0,\"inventory_id\":0,\"inventory_ids\":[],\"inventory_name\":\"\",\"inventory_names\":[],\"repository_id\":0,\"repository_name\":\"\",\"url\":null,\"username\":\"\"}}} test.yml"
+	if res != expected {
+		t.Fatalf("incorrect result\nGot:      %s\nExpected: %s", res, expected)
 	}
 }
 
@@ -601,6 +604,7 @@ func TestTaskGetPlaybookArgs2(t *testing.T) {
 		Task:        tsk.Task,
 		Template:    tsk.Template,
 		Inventory:   tsk.Inventory,
+		Inventories: []db.Inventory{}, // Initialize empty for single inventory mode
 		Repository:  tsk.Repository,
 		Environment: tsk.Environment,
 		Logger:      &tsk,
@@ -623,8 +627,9 @@ func TestTaskGetPlaybookArgs2(t *testing.T) {
 	}
 
 	res := strings.Join(args, " ")
-	if res != "-i /tmp/project_0/inventory_0 --extra-vars {\"semaphore_vars\":{\"task_details\":{\"commit_hash\":null,\"commit_message\":\"\",\"id\":0,\"inventory_id\":0,\"inventory_name\":\"\",\"repository_id\":0,\"repository_name\":\"\",\"url\":null,\"username\":\"\"}}} test.yml" {
-		t.Fatal("incorrect result")
+	expected := "-i /tmp/project_0/inventory_0 --extra-vars {\"semaphore_vars\":{\"task_details\":{\"commit_hash\":null,\"commit_message\":\"\",\"id\":0,\"inventory_id\":0,\"inventory_ids\":[],\"inventory_name\":\"\",\"inventory_names\":[],\"repository_id\":0,\"repository_name\":\"\",\"url\":null,\"username\":\"\"}}} test.yml"
+	if res != expected {
+		t.Fatalf("incorrect result\nGot:      %s\nExpected: %s", res, expected)
 	}
 }
 
@@ -658,6 +663,7 @@ func TestTaskGetPlaybookArgs3(t *testing.T) {
 		Task:        tsk.Task,
 		Template:    tsk.Template,
 		Inventory:   tsk.Inventory,
+		Inventories: []db.Inventory{}, // Initialize empty for single inventory mode
 		Repository:  tsk.Repository,
 		Environment: tsk.Environment,
 		Logger:      &tsk,
@@ -680,8 +686,9 @@ func TestTaskGetPlaybookArgs3(t *testing.T) {
 	}
 
 	res := strings.Join(args, " ")
-	if res != "-i /tmp/project_0/inventory_0 --extra-vars {\"semaphore_vars\":{\"task_details\":{\"commit_hash\":null,\"commit_message\":\"\",\"id\":0,\"inventory_id\":0,\"inventory_name\":\"\",\"repository_id\":0,\"repository_name\":\"\",\"url\":null,\"username\":\"\"}}} test.yml" {
-		t.Fatal("incorrect result")
+	expected := "-i /tmp/project_0/inventory_0 --extra-vars {\"semaphore_vars\":{\"task_details\":{\"commit_hash\":null,\"commit_message\":\"\",\"id\":0,\"inventory_id\":0,\"inventory_ids\":[],\"inventory_name\":\"\",\"inventory_names\":[],\"repository_id\":0,\"repository_name\":\"\",\"url\":null,\"username\":\"\"}}} test.yml"
+	if res != expected {
+		t.Fatalf("incorrect result\nGot:      %s\nExpected: %s", res, expected)
 	}
 }
 
