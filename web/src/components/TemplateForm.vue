@@ -178,16 +178,22 @@
         ></v-text-field>
 
         <v-autocomplete
-          v-model="item.inventory_id"
+          v-model="inventoryIds"
           :label="fieldLabel('inventory')"
           :items="inventory"
           item-value="id"
           item-text="name"
           outlined
           dense
+          multiple
+          chips
+          deletable-chips
+          small-chips
           required
           :disabled="formSaving"
           v-if="needField('inventory')"
+          :hint="$t('multipleInventoriesHint')"
+          persistent-hint
         ></v-autocomplete>
 
         <v-autocomplete
@@ -572,6 +578,7 @@ export default {
       },
       item: {
         task_params: {},
+        inventories: [],
       },
       inventory: null,
       repositories: null,
@@ -650,6 +657,33 @@ export default {
       },
       set(newValue) {
         this.item.task_params.allow_override_inventory = newValue;
+      },
+    },
+
+    inventoryIds: {
+      get() {
+        // Support both new multiple inventories and legacy single inventory
+        if (this.item.inventories && this.item.inventories.length > 0) {
+          return this.item.inventories.map((inv) => inv.id);
+        }
+        if (this.item.inventory_id) {
+          return [this.item.inventory_id];
+        }
+        return [];
+      },
+      set(newValue) {
+        // Update the inventories array based on selected IDs
+        if (newValue && newValue.length > 0) {
+          this.item.inventories = newValue.map((id) => {
+            const inv = this.inventory.find((i) => i.id === id);
+            return inv || { id };
+          });
+          // Keep inventory_id for backward compatibility (use first selected)
+          this.item.inventory_id = newValue[0];
+        } else {
+          this.item.inventories = [];
+          this.item.inventory_id = null;
+        }
       },
     },
 

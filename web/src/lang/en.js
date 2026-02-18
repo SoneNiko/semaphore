@@ -43,6 +43,7 @@ export default {
   youHaveReadonlyAccess: 'You have read-only access',
   taskTemplates: 'Task Templates',
   inventory: 'Inventory',
+  multipleInventoriesHint: 'You can select multiple inventories. They will be passed as separate -i arguments to Ansible.',
   environment: 'Variable Groups',
   keyStore: 'Key Store',
   repositories: 'Repositories',
