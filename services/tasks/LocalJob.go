@@ -22,6 +22,7 @@ type LocalJob struct {
 	Task        db.Task
 	Template    db.Template
 	Inventory   db.Inventory
+	Inventories []db.Inventory // Support multiple inventories
 	Repository  db.Repository
 	Environment db.Environment
 	Secret      string             // Secret contains secrets received from Survey variables

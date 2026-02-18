@@ -552,7 +552,7 @@ func (d *SqlDb) GetTemplateInventories(projectID int, templateID int) (inventori
 
 func (d *SqlDb) UpdateTemplateInventories(projectID int, templateID int, inventoryIDs []int) error {
 	// Start a transaction
-	tx, err := d.sql.Begin()
+	tx, err := d.Sql().Begin()
 	if err != nil {
 		return err
 	}

@@ -317,7 +317,7 @@ func (d *BoltDb) GetTemplateRole(projectID int, templateID int, roleID int) (rol
 }
 
 func (d *BoltDb) GetTemplateInventories(projectID int, templateID int) (inventories []db.Inventory, err error) {
-	template, err := d.getRawTemplate(projectID, templateID)
+	_, err = d.getRawTemplate(projectID, templateID)
 	if err != nil {
 		return
 	}
